@@ -1,0 +1,7 @@
+Primero crear el analizador lexico, para saber si el codigo esta bien escrito,
+
+Ideas de prueba:
+  Guardar las keywords en un array en donde cuando encontremos una, guardaremos el numero de linea en donde se encuentra
+
+  Leer el archivo desde el main(En caso de tenerlo)
+
