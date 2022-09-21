@@ -1,18 +1,81 @@
-#include <bits/stdc++.h>
-#include <fstream>
+#include "bits/stdc++.h"
+#include <algorithm>
+#include <ratio>
 #include <regex>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
-void agregar_Texto(std::fstream *my_File) {
-  *my_File << "#include <bits/stdc++.h>\n\n";
-  *my_File << "int main() { \n\nreturn 0;\n}";
+void split_Word(std::string const &str, std::vector<std::string> &result) {
+  std::istringstream iss(str);
+  for (std::string s; iss >> s;)
+    result.push_back(s);
 }
 
-bool comparar(std::string cadena) {
-  const std::regex expresion("(def)\\s[a-zA-Z]{1}[a-zA-Z]+\\(.*\\)\\:");
+std::string removeComments(std::string str, bool &multiline_Comment) {
+  std::string result;
 
-  return std::regex_match(cadena, expresion);
+  bool simple_Comment = false;
+  for (int i = 0; i < static_cast<int>(str.length()); i++) {
+    /* Si estamos dentro de un comentario */
+    if (multiline_Comment || simple_Comment) {
+      if (str[i] == '\"' && str[i + 1] == '\"' && str[i + 2] == '\"') {
+        multiline_Comment = false;
+        i += 2;
+      } else if (str[i] == '\n') {
+        simple_Comment = false;
+      } else
+        continue;
+    } else {
+      if (str[i] == '\"' && str[i + 1] == '\"' && str[i + 2] == '\"') {
+        multiline_Comment = true;
+        i += 2;
+      } else if (str[i] == '#') {
+        simple_Comment = true;
+        i++;
+      } else
+        result += str[i];
+    }
+  }
+
+  return result;
 }
+
+int count_Commas(std::string const &str) {
+  auto number_Commas = 0;
+  const std::regex r("^(\\s*)(def)(\\s*).*");
+  if (std::regex_match(str, r)) {
+    number_Commas = std::count(str.begin(), str.end(), ',');
+  }
+  return number_Commas;
+}
+
+bool is_Function(const std::string &str) {
+
+  int number_Commas = count_Commas(str);
+
+  const std::regex function_Without_Parameters(
+      "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s)*\\)\\:");
+  std::string regular_Expression =
+      "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s*)\\w+((\\s*)\\,(\\s*)\\w+){" +
+      std::to_string(number_Commas) + "}(\\s*)\\)\\:";
+  const std::regex function_With_Parameters(regular_Expression);
+
+  if (std::regex_match(str, function_Without_Parameters) ||
+      std::regex_match(str, function_With_Parameters))
+    return true;
+
+  return false;
+}
+
+bool is_Main(const std::string &str) {
+  std::regex r("\\S.*");
+  if (std::regex_match(str, r) || (str == "if __name__ == \"__main__\":"))
+    return true;
+  return false;
+}
+
+/* bool correct_Indentation(const std::string &str, int number_Line) {} */
 
 int main() {
   std::fstream my_File;
@@ -24,33 +87,31 @@ int main() {
     return -1;
   }
 
-  std::vector<std::string> lines;
+  std::map<int, std::string> functions{};
+  bool found_Main = false;
+
   std::string line;
-
-  std::vector<std::string> tActual;
-
-  int i = 0;
+  std::vector<std::string> lines{};
+  bool multiline_Comment = false;
+  int number_Line = 0;
   while (std::getline(my_File, line)) {
+    line = removeComments(line, multiline_Comment);
     lines.push_back(line);
-    std::cout << lines[i] << "\n";
-    i++;
-  }
 
-  for (int j = 0; j < lines.size(); j++) {
-    bool es_Funcion = comparar(lines[j]);
-
-    if (es_Funcion) {
-      tActual.push_back("FUNCION");
-    } else {
-      tActual.push_back(lines[j]);
+    auto it = functions.end();
+    if (is_Function(lines.at(number_Line))) {
+      functions.insert({number_Line, lines.at(number_Line)});
+    } else if (number_Line >= it->first + 1 && is_Main(lines.at(number_Line)) &&
+               !found_Main) {
+      functions.insert({number_Line, lines.at(number_Line)});
+      found_Main = true;
     }
+
+    /* is_Main(); */
+    number_Line++;
   }
 
-  for (auto x : tActual) {
-    std::cout << x << std::endl;
-  }
-
-  my_File.close();
-
+  for (auto &x : functions)
+    std::cout << x.first << " " << x.second << "\n";
   return 0;
 }
