@@ -75,8 +75,6 @@ bool is_Main(const std::string &str) {
   return false;
 }
 
-/* bool correct_Indentation(const std::string &str, int number_Line) {} */
-
 int main() {
   std::fstream my_File;
   my_File.open("Proyecto Final.txt",
@@ -87,7 +85,7 @@ int main() {
     return -1;
   }
 
-  std::map<int, std::string> functions{};
+  std::map<int, std::string> modules{};
   bool found_Main = false;
 
   std::string line;
@@ -98,20 +96,19 @@ int main() {
     line = removeComments(line, multiline_Comment);
     lines.push_back(line);
 
-    auto it = functions.end();
+    auto it = modules.end();
     if (is_Function(lines.at(number_Line))) {
-      functions.insert({number_Line, lines.at(number_Line)});
+      modules.insert({number_Line, lines.at(number_Line)});
     } else if (number_Line >= it->first + 1 && is_Main(lines.at(number_Line)) &&
                !found_Main) {
-      functions.insert({number_Line, lines.at(number_Line)});
+      modules.insert({number_Line, lines.at(number_Line)});
       found_Main = true;
     }
 
-    /* is_Main(); */
     number_Line++;
   }
 
-  for (auto &x : functions)
+  for (auto &x : modules)
     std::cout << x.first << " " << x.second << "\n";
   return 0;
 }
