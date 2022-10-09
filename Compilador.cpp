@@ -1,5 +1,6 @@
 #include "bits/stdc++.h"
 #include <algorithm>
+#include <iterator>
 #include <ratio>
 #include <regex>
 #include <string>
@@ -10,6 +11,16 @@ void split_Word(std::string const &str, std::vector<std::string> &result) {
   std::istringstream iss(str);
   for (std::string s; iss >> s;)
     result.push_back(s);
+}
+
+std::string get_Function_Name(std::string &str) {
+  std::string delimiter = " ";
+  std::string token = str.erase(0, str.find(delimiter) + delimiter.length());
+  delimiter = "\(";
+  token = token.substr(0, token.find(delimiter));
+  std::string::iterator end_pos = std::remove(token.begin(), token.end(), ' ');
+  token.erase(end_pos, token.end());
+  return token;
 }
 
 std::string removeComments(std::string str, bool &multiline_Comment) {
@@ -75,6 +86,12 @@ bool is_Main(const std::string &str) {
   return false;
 }
 
+std::vector<std::string> read_Function(std::vector<std::string> &lines,
+                                       const int start, const int end) {
+  std::vector<std::string> v(&lines[start], &lines[end]);
+  return v;
+}
+
 int main() {
   std::fstream my_File;
   my_File.open("Proyecto Final.txt",
@@ -94,21 +111,29 @@ int main() {
   int number_Line = 0;
   while (std::getline(my_File, line)) {
     line = removeComments(line, multiline_Comment);
-    lines.push_back(line);
+    if (line.empty()) {
+      continue;
+    }
 
+    lines.push_back(line);
     auto it = modules.end();
-    if (is_Function(lines.at(number_Line))) {
-      modules.insert({number_Line, lines.at(number_Line)});
-    } else if (number_Line >= it->first + 1 && is_Main(lines.at(number_Line)) &&
-               !found_Main) {
-      modules.insert({number_Line, lines.at(number_Line)});
+    if (is_Function(line)) {
+      modules.insert({number_Line, get_Function_Name(line)});
+    } else if (number_Line >= it->first + 1 && is_Main(line) && !found_Main) {
+      modules.insert({number_Line, "Main"});
       found_Main = true;
     }
 
     number_Line++;
   }
 
-  for (auto &x : modules)
-    std::cout << x.first << " " << x.second << "\n";
+  for (auto x : modules) {
+    std::cout << x.second << "\n";
+  }
+
+  /* auto it = modules.begin(); */
+
+  /* std::cout << (++it)->first << "\n"; */
+
   return 0;
 }
