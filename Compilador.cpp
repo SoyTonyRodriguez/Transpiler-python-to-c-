@@ -1,17 +1,18 @@
 #include "bits/stdc++.h"
 #include <algorithm>
-#include <iterator>
+#include <cstdlib>
 #include <ratio>
 #include <regex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-void split_Word(std::string const &str, std::vector<std::string> &result) {
-  std::istringstream iss(str);
-  for (std::string s; iss >> s;)
-    result.push_back(s);
-}
+/* void split_Word(std::string const &str, std::vector<std::string> &result) {
+ */
+/*   std::istringstream iss(str); */
+/*   for (std::string s; iss >> s;) */
+/*     result.push_back(s); */
+/* } */
 
 std::string get_Function_Name(std::string &str) {
   std::string delimiter = " ";
@@ -62,7 +63,6 @@ int count_Commas(std::string const &str) {
 }
 
 bool is_Function(const std::string &str) {
-
   int number_Commas = count_Commas(str);
 
   const std::regex function_Without_Parameters(
@@ -86,13 +86,127 @@ bool is_Main(const std::string &str) {
   return false;
 }
 
-std::vector<std::string> read_Function(std::vector<std::string> &lines,
-                                       const int start, const int end) {
+int count_Beggining_Spaces(const std::string &str) {
+  int spaces_At_The_Beggining = 0;
+  for (auto i = 0; i < int(str.length()); i++) {
+    if (std::isspace(str[i]))
+      spaces_At_The_Beggining++;
+    else
+      break;
+  }
+  return spaces_At_The_Beggining;
+}
+
+void check_Indentation(std::vector<std::string> &str) {
+  int spaces_At_The_Beggining = 0;
+  int spaces_Default = 0;
+  int level_Indentation = 1;
+  int times = 0;
+  int spaces_Before = 0;
+
+  bool first_Line_After_Colon = false;
+  bool Is_function = false;
+
+  for (auto line : str) {
+    spaces_At_The_Beggining = count_Beggining_Spaces(line);
+
+    if (times == 0 && spaces_At_The_Beggining == 0) {
+      std::cout << "First Line correct\n";
+      if (line[line.size() - 1] == ':') {
+        Is_function = true;
+      }
+    } else if (times == 1) {
+      spaces_Default = spaces_At_The_Beggining;
+      if (line[line.size() - 1] == ':' &&
+          (spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
+        level_Indentation++;
+        first_Line_After_Colon = true;
+        std::cout << "Second Correct last character is :\n";
+      } else if (Is_function && spaces_At_The_Beggining > 0) {
+        std::cout << "Second line correct\n";
+      } else if (!Is_function && spaces_At_The_Beggining == 0) {
+        std::cout << "Second line correct\n";
+      } else {
+        std::cout << "Incorrect Indentation!!! :("
+                  << "\t" << line << "\n";
+        exit(-1);
+      }
+    } else if (times > 1) {
+      if (line[line.size() - 1] == ':' &&
+          (spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
+        level_Indentation++;
+        first_Line_After_Colon = true;
+        std::cout << "Correct last character is :\n";
+      } else if (level_Indentation > 1 && first_Line_After_Colon &&
+                 Is_function) {
+        first_Line_After_Colon = false;
+        if ((spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
+          std::cout << "\tCorrect First line after colon\n";
+        } else {
+          std::cout << "Incorrect Indentation!!! :("
+                    << "\t" << line << "\n";
+          exit(-1);
+        }
+      } else if (level_Indentation > 1 && !first_Line_After_Colon &&
+                 Is_function) {
+        if ((spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
+          std::cout << "\tCorrect Second/later after colon\n";
+        } else if (spaces_Default == spaces_At_The_Beggining) {
+          std::cout << "Correct back to indentation\n";
+          level_Indentation--;
+        } else {
+          std::cout << "Incorrect Indentation!!! :("
+                    << "\t" << line << "\n";
+        }
+      } else if (level_Indentation > 1 && first_Line_After_Colon &&
+                 !Is_function) {
+        first_Line_After_Colon = false;
+        if (spaces_At_The_Beggining != 0) {
+          spaces_Before = spaces_At_The_Beggining;
+          std::cout << "\tCorrect First line after colon\n";
+        } else {
+          std::cout << "Incorrect Indentation!!! :("
+                    << "\t" << line << "\n";
+          exit(-1);
+        }
+      } else if (level_Indentation > 1 && !first_Line_After_Colon &&
+                 !Is_function) {
+        if (spaces_At_The_Beggining == spaces_Before) {
+          std::cout << "\tCorrect Second/later after colon\n";
+        } else if (spaces_Default == spaces_At_The_Beggining) {
+          std::cout << "Correct back to indentation\n";
+          level_Indentation--;
+        } else {
+          std::cout << "Incorrect Indentation!!! :("
+                    << "\t" << line << "\n";
+        }
+      } else if ((spaces_Default * level_Indentation) ==
+                 spaces_At_The_Beggining) {
+        std::cout << "Third/later correct\n";
+      } else {
+        std::cout << "Incorrect Indentation!!! :("
+                  << "\t" << line << "\n";
+      }
+    }
+
+    times++;
+  }
+  std::cout << "\n";
+}
+
+void read_Functions(std::vector<std::string> &lines, const int start,
+                    const int end) {
+  /* std::cout << start << " - " << end << "\n"; */
   std::vector<std::string> v(&lines[start], &lines[end]);
-  return v;
+  check_Indentation(v);
+
+  /* for (auto &x : v) { */
+  /*   std::cout << x << "\n"; */
+  /* } */
 }
 
 int main() {
+
   std::fstream my_File;
   my_File.open("Proyecto Final.txt",
                std::fstream::in | std::fstream::out | std::fstream::app);
@@ -104,10 +218,10 @@ int main() {
 
   std::map<int, std::string> modules{};
   bool found_Main = false;
-
   std::string line;
   std::vector<std::string> lines{};
   bool multiline_Comment = false;
+
   int number_Line = 0;
   while (std::getline(my_File, line)) {
     line = removeComments(line, multiline_Comment);
@@ -127,13 +241,21 @@ int main() {
     number_Line++;
   }
 
-  for (auto x : modules) {
-    std::cout << x.second << "\n";
+  std::vector<std::string> keywords = {"def",   "print", "for",   "in",
+                                       "range", "int",   "input", "return"};
+
+  auto it = modules.begin();
+  auto it2 = modules.begin();
+  int size_Map = static_cast<int>(modules.size());
+
+  for (int i = 0; i < size_Map; i++) {
+    if (i == size_Map - 1) {
+      read_Functions(lines, it->first, lines.size());
+    } else {
+      read_Functions(lines, it->first, (++it2)->first);
+    }
+    ++it;
   }
-
-  /* auto it = modules.begin(); */
-
-  /* std::cout << (++it)->first << "\n"; */
 
   return 0;
 }
