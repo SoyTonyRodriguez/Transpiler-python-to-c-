@@ -62,20 +62,30 @@ int count_Commas(std::string const &str) {
   return number_Commas;
 }
 
-bool is_Function(const std::string &str) {
-  int number_Commas = count_Commas(str);
+void message_Error_Indentation(std::string error_Type, const std::string &line, int &times) {
+  std::cout << "Error of: " << error_Type << " line " << times + 1 << "\n\t" << line
+            << "\n\t^\n";
+  exit(-1);
+}
 
-  const std::regex function_Without_Parameters(
-      "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s)*\\)\\:");
-  std::string regular_Expression =
-      "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s*)\\w+((\\s*)\\,(\\s*)\\w+){" +
-      std::to_string(number_Commas) + "}(\\s*)\\)\\:";
-  const std::regex function_With_Parameters(regular_Expression);
+bool is_Function(const std::string &str, int &number_Line) {
+  const std::regex begin_Def("(\\s)*(def)(\\s)+(.*)");
+  if (std::regex_match(str, begin_Def)) {
+    int number_Commas = count_Commas(str);
 
-  if (std::regex_match(str, function_Without_Parameters) ||
-      std::regex_match(str, function_With_Parameters))
-    return true;
+    const std::regex function_Without_Parameters(
+        "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s)*\\)\\:");
+    std::string regular_Expression =
+        "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s*)\\w+((\\s*)\\,(\\s*)\\w+){" +
+        std::to_string(number_Commas) + "}(\\s*)\\)\\:";
+    const std::regex function_With_Parameters(regular_Expression);
 
+    if (std::regex_match(str, function_Without_Parameters) ||
+        std::regex_match(str, function_With_Parameters))
+      return true;
+    else
+      message_Error_Indentation("Indentation", str, number_Line);
+  }
   return false;
 }
 
@@ -110,88 +120,66 @@ void check_Indentation(std::vector<std::string> &str) {
   for (auto line : str) {
     spaces_At_The_Beggining = count_Beggining_Spaces(line);
 
-    if (times == 0 && spaces_At_The_Beggining == 0) {
-      std::cout << "First Line correct\n";
-      if (line[line.size() - 1] == ':') {
+    if (times == 0) {
+      if (line[line.size() - 1] == ':')
         Is_function = true;
-      }
     } else if (times == 1) {
       spaces_Default = spaces_At_The_Beggining;
       if (line[line.size() - 1] == ':' &&
           (spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
         level_Indentation++;
         first_Line_After_Colon = true;
-        std::cout << "Second Correct last character is :\n";
-      } else if (Is_function && spaces_At_The_Beggining > 0) {
-        std::cout << "Second line correct\n";
-      } else if (!Is_function && spaces_At_The_Beggining == 0) {
-        std::cout << "Second line correct\n";
-      } else {
-        std::cout << "Incorrect Indentation!!! :("
-                  << "\t" << line << "\n";
-        exit(-1);
+      } else if ((Is_function && spaces_At_The_Beggining == 0) ||
+                 (!Is_function && spaces_At_The_Beggining != 0)) {
+        message_Error_Indentation("Indentation", line, times);
       }
     } else if (times > 1) {
+
       if (line[line.size() - 1] == ':' &&
           (spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
         level_Indentation++;
         first_Line_After_Colon = true;
-        std::cout << "Correct last character is :\n";
       } else if (level_Indentation > 1 && first_Line_After_Colon &&
                  Is_function) {
         first_Line_After_Colon = false;
-        if ((spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
-          std::cout << "\tCorrect First line after colon\n";
-        } else {
-          std::cout << "Incorrect Indentation!!! :("
-                    << "\t" << line << "\n";
-          exit(-1);
-        }
+        if ((spaces_Default * level_Indentation) != spaces_At_The_Beggining)
+          message_Error_Indentation("Indentation", line, times);
+
       } else if (level_Indentation > 1 && !first_Line_After_Colon &&
                  Is_function) {
-        if ((spaces_Default * level_Indentation) == spaces_At_The_Beggining) {
-          std::cout << "\tCorrect Second/later after colon\n";
-        } else if (spaces_Default == spaces_At_The_Beggining) {
-          std::cout << "Correct back to indentation\n";
+        if (spaces_Default == spaces_At_The_Beggining) {
           level_Indentation--;
-        } else {
-          std::cout << "Incorrect Indentation!!! :("
-                    << "\t" << line << "\n";
+        } else if ((spaces_Default * level_Indentation) !=
+                   spaces_At_The_Beggining) {
+          message_Error_Indentation("Indentation", line, times);
         }
       } else if (level_Indentation > 1 && first_Line_After_Colon &&
                  !Is_function) {
+        if (spaces_At_The_Beggining == 0)
+          message_Error_Indentation("Indentation", line, times);
+
         first_Line_After_Colon = false;
-        if (spaces_At_The_Beggining != 0) {
-          spaces_Before = spaces_At_The_Beggining;
-          std::cout << "\tCorrect First line after colon\n";
-        } else {
-          std::cout << "Incorrect Indentation!!! :("
-                    << "\t" << line << "\n";
-          exit(-1);
-        }
+        spaces_Before = spaces_At_The_Beggining;
       } else if (level_Indentation > 1 && !first_Line_After_Colon &&
                  !Is_function) {
-        if (spaces_At_The_Beggining == spaces_Before) {
-          std::cout << "\tCorrect Second/later after colon\n";
-        } else if (spaces_Default == spaces_At_The_Beggining) {
-          std::cout << "Correct back to indentation\n";
+        if (spaces_Default == spaces_At_The_Beggining) {
           level_Indentation--;
-        } else {
-          std::cout << "Incorrect Indentation!!! :("
-                    << "\t" << line << "\n";
+          continue;
+        } else if (spaces_At_The_Beggining != spaces_Before) {
+          message_Error_Indentation("Indentation", line, times);
         }
       } else if ((spaces_Default * level_Indentation) ==
                  spaces_At_The_Beggining) {
-        std::cout << "Third/later correct\n";
+        continue;
       } else {
-        std::cout << "Incorrect Indentation!!! :("
-                  << "\t" << line << "\n";
+        message_Error_Indentation("Indentation", line, times);
       }
+    } else {
+      message_Error_Indentation("Indentation", line, times);
     }
 
     times++;
   }
-  std::cout << "\n";
 }
 
 void read_Functions(std::vector<std::string> &lines, const int start,
@@ -231,7 +219,7 @@ int main() {
 
     lines.push_back(line);
     auto it = modules.end();
-    if (is_Function(line)) {
+    if (is_Function(line, number_Line)) {
       modules.insert({number_Line, get_Function_Name(line)});
     } else if (number_Line >= it->first + 1 && is_Main(line) && !found_Main) {
       modules.insert({number_Line, "Main"});
