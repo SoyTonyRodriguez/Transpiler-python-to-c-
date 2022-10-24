@@ -5,3 +5,8 @@ Ideas de prueba:
 
   Leer el archivo desde el main(En caso de tenerlo)
 
+
+
+  Utilizar un std::map, en la parte entera almacenar el numero de linea, en la parte del std::string, guardar lo que
+    contiene, ej. 12    print("HOla"), la linea 12 contiene una funcion
+

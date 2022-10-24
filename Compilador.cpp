@@ -55,16 +55,14 @@ std::string removeComments(std::string str, bool &multiline_Comment) {
 
 int count_Commas(std::string const &str) {
   auto number_Commas = 0;
-  const std::regex r("^(\\s*)(def)(\\s*).*");
-  if (std::regex_match(str, r)) {
-    number_Commas = std::count(str.begin(), str.end(), ',');
-  }
+  number_Commas = std::count(str.begin(), str.end(), ',');
   return number_Commas;
 }
 
-void message_Error_Indentation(std::string error_Type, const std::string &line, int &times) {
-  std::cout << "Error of: " << error_Type << " line " << times + 1 << "\n\t" << line
-            << "\n\t^\n";
+void message_Error_Indentation(std::string error_Type, const std::string &line,
+                               int &times) {
+  std::cout << "Error of: " << error_Type << " line " << times + 1 << "\n\t"
+            << line << "\n\t^\n";
   exit(-1);
 }
 
@@ -184,7 +182,7 @@ void check_Indentation(std::vector<std::string> &str) {
 
 void read_Functions(std::vector<std::string> &lines, const int start,
                     const int end) {
-  /* std::cout << start << " - " << end << "\n"; */
+
   std::vector<std::string> v(&lines[start], &lines[end]);
   check_Indentation(v);
 
@@ -229,8 +227,8 @@ int main() {
     number_Line++;
   }
 
-  std::vector<std::string> keywords = {"def",   "print", "for",   "in",
-                                       "range", "int",   "input", "return"};
+  std::vector<std::string> keywords = {"print", "for",   "in",    "range",
+                                       "int",   "input", "return"};
 
   auto it = modules.begin();
   auto it2 = modules.begin();
