@@ -1,5 +1,6 @@
 #include "bits/stdc++.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <ratio>
 #include <regex>
@@ -7,9 +8,13 @@
 #include <unordered_map>
 #include <vector>
 
+std::vector<std::string> keywords = {"print", "def", "for", "in", "range", "append", "return", "len(", "int"};
+
 std::string get_Function_Name(std::string &str) {
   std::string delimiter = " ";
-  std::string token = str.erase(0, str.find(delimiter) + delimiter.length());
+  std::string str2 = str;
+  std::string token =
+      str2.erase(0, str2.find(delimiter) + delimiter.length());
   delimiter = "\(";
   token = token.substr(0, token.find(delimiter));
   std::string::iterator end_pos = std::remove(token.begin(), token.end(), ' ');
@@ -17,7 +22,7 @@ std::string get_Function_Name(std::string &str) {
   return token;
 }
 
-std::string removeComments(std::string str, bool &multiline_Comment) {
+std::string remove_Comments(std::string str, bool &multiline_Comment) {
   std::string result;
 
   bool simple_Comment = false;
@@ -59,23 +64,70 @@ void message_Error(std::string error_Type, const std::string &line,
   exit(-1);
 }
 
+std::vector<std::string> tokens_Functions(const std::string &str) {
+  std::string str_Copy = str;
+  std::vector<std::string> variables = {};
+  std::vector<std::string> tokensF = {
+      str_Copy.substr(0, 3).replace(0, 3, "_Funcion_")};
+
+  /* std::cout << "\n" << new_Str << "\n"; */
+  str_Copy.erase(0, 3);
+  str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
+                  str_Copy.end());
+
+  int position = str_Copy.find('(');
+  tokensF.push_back(str_Copy.substr(0, position).replace(0, position, "_ID_"));
+  str_Copy.erase(0, position);
+  tokensF.push_back(str_Copy.substr(0, 1));
+  str_Copy.erase(0, 1);
+
+  int commas = count_Commas(str_Copy);
+  if (commas != 0) {
+    for (int i = 0; i < commas; i++) {
+      position = str_Copy.find(',');
+      tokensF.push_back(
+          str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
+      variables.push_back(str_Copy.substr(0, position));
+      str_Copy.erase(0, position);
+      tokensF.push_back(str_Copy.substr(0, 1));
+      str_Copy.erase(0, 1);
+    }
+  }
+
+  position = str_Copy.find(')');
+  tokensF.push_back(
+      str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
+  variables.push_back(str_Copy.substr(0, position));
+  str_Copy.erase(0, position);
+  tokensF.push_back(str_Copy.substr(0, 2));
+
+  for (auto x : tokensF) {
+    std::cout << x << " ";
+  }
+  std::cout << "\n";
+  return variables;
+}
+
 bool is_Function(const std::string &str, int &number_Line) {
-  const std::regex begin_Def("(\\s)*(def)(\\s)+(.*)");
-  if (std::regex_match(str, begin_Def)) {
-    int number_Commas = count_Commas(str);
+  const std::regex begin_Def("(\\w)(\\w+)(\\s)*(\\w)\\w+(\\s)*\\((.*)\\)\\:");
+  const std::regex begin2("(def)(\\s)+(.*)");
+  if (std::regex_match(str, begin_Def) or std::regex_match(str, begin2)) {
+    int numeber_Commas = count_Commas(str);
 
     const std::regex function_Without_Parameters(
         "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s)*\\)\\:");
     std::string regular_Expression =
         "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s*)\\w+((\\s*)\\,(\\s*)\\w+){" +
-        std::to_string(number_Commas) + "}(\\s*)\\)\\:";
+        std::to_string(numeber_Commas) + "}(\\s*)\\)(\\s*)\\:";
     const std::regex function_With_Parameters(regular_Expression);
 
     if (std::regex_match(str, function_Without_Parameters) ||
-        std::regex_match(str, function_With_Parameters))
+        std::regex_match(str, function_With_Parameters)) {
       return true;
+    }
+
     else
-      message_Error("Indentation", str, number_Line);
+      message_Error("Identacion o Sintactico", str, number_Line);
   }
   return false;
 }
@@ -173,12 +225,96 @@ void check_Indentation(std::vector<std::string> &str) {
   }
 }
 
-void check_Syntax(std::vector<std::string> &str) {
-  std::vector<std::string> keywords = {"print", "for",    "int",
-                                       "input", "append", "return"};
+void tokens_Print(const std::string &str, int begin_Spaces) {
+  std::string str_Copy = str;
 
+  str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
+                  str_Copy.end());
+  std::vector<std::string> tokensP = {
+      str_Copy.substr(0, 5).replace(0, 5, "_Keyword(print)_")};
+  str_Copy.erase(0, 5);
+  tokensP.push_back(str_Copy.substr(0, 1));
+
+  int position;
+  int comas = count_Commas(str_Copy);
+  if (comas != 0) {
+    for (int i = 0; i < comas; i++) {
+      position = str_Copy.find(',');
+      tokensP.push_back(
+          str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
+      str_Copy.erase(0, position);
+      tokensP.push_back(str_Copy.substr(0, 1));
+    }
+  } else if (comas == 0 && str_Copy.find('\"') != std::string::npos) {
+    str_Copy.erase(0, 2);
+    position = str_Copy.find("\"");
+    /* std::cout << str_Copia << "\n"; */
+    tokensP.push_back(
+        str.substr(0, position).replace(0, position, "_String_"));
+    str_Copy.erase(0, position + 1);
+    tokensP.push_back(str_Copy.substr(0, 1));
+  }
+
+  if (comas != 0) {
+    position = str_Copy.find(')');
+    tokensP.push_back(
+        str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
+    str_Copy.erase(0, position);
+    tokensP.push_back(str_Copy.substr(0, 1));
+  }
+
+  for (auto x : tokensP) {
+    std::cout << std::string(begin_Spaces, ' ') << x << " ";
+  }
+  std::cout << "\n";
+}
+
+void tokens_Assignment(const std::string &str, int espacios_Principio) {
+  std::string str_Copy = str;
+  std::vector<std::string> tokensA = {};
+  str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
+                  str_Copy.end());
+  int position = str_Copy.find('=');
+  tokensA.push_back(
+      str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
+  str_Copy.erase(0, position + 1);
+
+  tokensA.push_back("_ASSIGNMENT_");
+
+  tokensA.push_back(str_Copy.substr(0, str_Copy.length())
+                        .replace(0, str_Copy.length(), "_ASSIGNED_VALUE_"));
+
+  for (auto x : tokensA) {
+    std::cout << std::string(espacios_Principio, ' ') << x << " ";
+  }
+  std::cout << "\n";
+}
+
+void tokens_Return(const std::string &str, int espacios_Principio) {
+  std::string str_Copy = str;
+  std::vector<std::string> tokensR = {};
+  str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
+                  str_Copy.end());
+
+  int position = str_Copy.find('n');
+  tokensR.push_back(str_Copy.substr(0, position)
+                        .replace(0, position, "_KEYWORD(return)_"));
+  str_Copy.erase(0, position + 1);
+
+  tokensR.push_back(str_Copy.substr(0, str_Copy.length())
+                        .replace(0, str_Copy.length(), "_VALOR RETORNADO_"));
+
+  for (auto x : tokensR) {
+    std::cout << std::string(espacios_Principio, ' ') << x << " ";
+  }
+  std::cout << "\n";
+}
+
+void check_Syntax(std::vector<std::string> &str) {
   int spaces_At_The_Beggining = 0;
   int commas;
+
+  std::vector<std::string> saved_Variables{};
 
   for (auto line : str) {
     spaces_At_The_Beggining = count_Beggining_Spaces(line);
@@ -190,23 +326,39 @@ void check_Syntax(std::vector<std::string> &str) {
                            std::to_string(spaces_At_The_Beggining) +
                            "}(print)(\\()(\")(.*)(\")(\\))");
 
-    std::regex regex_For("(\\s){" + std::to_string(spaces_At_The_Beggining) +
-                         "}(for)(\\s)(\\w)(\\s)(in)(\\s)(range)(\\()(\\w)+(\\s)"
-                         "*(\\,)(\\s)*\\w+((\\((\\w+)(\\)))|.{0})(\\))(\\:)");
+    std::regex regex_Return("(\\s*){" + std::to_string(spaces_At_The_Beggining) +
+                            "}(return)(\\s*)(\\w+)");
 
     std::regex regex_Input("(\\s){" + std::to_string(spaces_At_The_Beggining) +
                            "}(\\w)+(\\s*)(\\=)(\\s*)((\\w)(\\w+)(\\()(\\s*)("
                            "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))(\\))|(("
                            "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))))");
 
-    if (std::regex_match(line, regex_Print)) {
-      std::cout << "This is a print()\n";
-    } else if (std::regex_match(line, regex_For)) {
-      std::cout << "This is a for loop\n";
-    } else if (std::regex_match(line, regex_Input)) {
-      std::cout << "This is a input\n";
+    std::regex function_Without_Parameters(
+        "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s)*\\)\\:");
+    std::regex function_With_Parameters(
+        "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s*)\\w+((\\s*)\\,(\\s*)\\w+){" +
+        std::to_string(commas) + "}(\\s*)\\)(\\s*)\\:");
+
+    std::regex regex_Assignment("(\\s*){" + std::to_string(spaces_At_The_Beggining) +
+                                "}(\\w*)(\\s*)(\\=)(\\s*)(.*)");
+
+    if (std::regex_match(line, function_With_Parameters) ||
+        std::regex_match(line, function_Without_Parameters)) {
+      saved_Variables = tokens_Functions(line);
+      std::cout << "Saved variables --> ";
+      for (auto x : saved_Variables) {
+        std::cout << x << ",";
+      }
+      std::cout << "\n";
+    } else if (std::regex_match(line, regex_Print)) {
+      tokens_Print(line, spaces_At_The_Beggining);
+    } else if (std::regex_match(line, regex_Assignment)) {
+      tokens_Assignment(line, spaces_At_The_Beggining);
+    } else if (std::regex_match(line, regex_Return)) {
+      tokens_Return(line, spaces_At_The_Beggining);
     } else {
-      std::cout << line << "\n";
+      std::cout << line << " --- No se que es esto xd ---\n";
     }
   }
 }
@@ -217,6 +369,7 @@ void read_Functions(std::vector<std::string> &lines, const int start,
   std::vector<std::string> v(&lines[start], &lines[end]);
   check_Indentation(v);
   check_Syntax(v);
+  std::cout << "\n\n";
 
   /* for (auto &x : v) { */
   /*   std::cout << x << "\n"; */
@@ -242,7 +395,7 @@ int main() {
 
   int number_Line = 0;
   while (std::getline(my_File, line)) {
-    line = removeComments(line, multiline_Comment);
+    line = remove_Comments(line, multiline_Comment);
     if (line.empty()) {
       continue;
     }
