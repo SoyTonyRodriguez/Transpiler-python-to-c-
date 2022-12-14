@@ -7,13 +7,6 @@
 #include <unordered_map>
 #include <vector>
 
-/* void split_Word(std::string const &str, std::vector<std::string> &result) {
- */
-/*   std::istringstream iss(str); */
-/*   for (std::string s; iss >> s;) */
-/*     result.push_back(s); */
-/* } */
-
 std::string get_Function_Name(std::string &str) {
   std::string delimiter = " ";
   std::string token = str.erase(0, str.find(delimiter) + delimiter.length());
@@ -59,8 +52,8 @@ int count_Commas(std::string const &str) {
   return number_Commas;
 }
 
-void message_Error_Indentation(std::string error_Type, const std::string &line,
-                               int &times) {
+void message_Error(std::string error_Type, const std::string &line,
+                   int &times) {
   std::cout << "Error of: " << error_Type << " line " << times + 1 << "\n\t"
             << line << "\n\t^\n";
   exit(-1);
@@ -82,7 +75,7 @@ bool is_Function(const std::string &str, int &number_Line) {
         std::regex_match(str, function_With_Parameters))
       return true;
     else
-      message_Error_Indentation("Indentation", str, number_Line);
+      message_Error("Indentation", str, number_Line);
   }
   return false;
 }
@@ -129,7 +122,7 @@ void check_Indentation(std::vector<std::string> &str) {
         first_Line_After_Colon = true;
       } else if ((Is_function && spaces_At_The_Beggining == 0) ||
                  (!Is_function && spaces_At_The_Beggining != 0)) {
-        message_Error_Indentation("Indentation", line, times);
+        message_Error("Indentation", line, times);
       }
     } else if (times > 1) {
 
@@ -141,7 +134,7 @@ void check_Indentation(std::vector<std::string> &str) {
                  Is_function) {
         first_Line_After_Colon = false;
         if ((spaces_Default * level_Indentation) != spaces_At_The_Beggining)
-          message_Error_Indentation("Indentation", line, times);
+          message_Error("Indentation", line, times);
 
       } else if (level_Indentation > 1 && !first_Line_After_Colon &&
                  Is_function) {
@@ -149,12 +142,12 @@ void check_Indentation(std::vector<std::string> &str) {
           level_Indentation--;
         } else if ((spaces_Default * level_Indentation) !=
                    spaces_At_The_Beggining) {
-          message_Error_Indentation("Indentation", line, times);
+          message_Error("Indentation", line, times);
         }
       } else if (level_Indentation > 1 && first_Line_After_Colon &&
                  !Is_function) {
         if (spaces_At_The_Beggining == 0)
-          message_Error_Indentation("Indentation", line, times);
+          message_Error("Indentation", line, times);
 
         first_Line_After_Colon = false;
         spaces_Before = spaces_At_The_Beggining;
@@ -164,19 +157,57 @@ void check_Indentation(std::vector<std::string> &str) {
           level_Indentation--;
           continue;
         } else if (spaces_At_The_Beggining != spaces_Before) {
-          message_Error_Indentation("Indentation", line, times);
+          message_Error("Indentation", line, times);
         }
       } else if ((spaces_Default * level_Indentation) ==
                  spaces_At_The_Beggining) {
         continue;
       } else {
-        message_Error_Indentation("Indentation", line, times);
+        message_Error("Indentation", line, times);
       }
     } else {
-      message_Error_Indentation("Indentation", line, times);
+      message_Error("Indentation", line, times);
     }
 
     times++;
+  }
+}
+
+void check_Syntax(std::vector<std::string> &str) {
+  std::vector<std::string> keywords = {"print", "for",    "int",
+                                       "input", "append", "return"};
+
+  int spaces_At_The_Beggining = 0;
+  int commas;
+
+  for (auto line : str) {
+    spaces_At_The_Beggining = count_Beggining_Spaces(line);
+    commas = count_Commas(line);
+
+    std::regex regex_Print("((\\s){" + std::to_string(spaces_At_The_Beggining) +
+                           "}(print)(\\()(\\w)+((\\s*)\\,(\\s*)\\w+){" +
+                           std::to_string(commas) + "}(\\s*)\\))|(\\s){" +
+                           std::to_string(spaces_At_The_Beggining) +
+                           "}(print)(\\()(\")(.*)(\")(\\))");
+
+    std::regex regex_For("(\\s){" + std::to_string(spaces_At_The_Beggining) +
+                         "}(for)(\\s)(\\w)(\\s)(in)(\\s)(range)(\\()(\\w)+(\\s)"
+                         "*(\\,)(\\s)*\\w+((\\((\\w+)(\\)))|.{0})(\\))(\\:)");
+
+    std::regex regex_Input("(\\s){" + std::to_string(spaces_At_The_Beggining) +
+                           "}(\\w)+(\\s*)(\\=)(\\s*)((\\w)(\\w+)(\\()(\\s*)("
+                           "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))(\\))|(("
+                           "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))))");
+
+    if (std::regex_match(line, regex_Print)) {
+      std::cout << "This is a print()\n";
+    } else if (std::regex_match(line, regex_For)) {
+      std::cout << "This is a for loop\n";
+    } else if (std::regex_match(line, regex_Input)) {
+      std::cout << "This is a input\n";
+    } else {
+      std::cout << line << "\n";
+    }
   }
 }
 
@@ -185,6 +216,7 @@ void read_Functions(std::vector<std::string> &lines, const int start,
 
   std::vector<std::string> v(&lines[start], &lines[end]);
   check_Indentation(v);
+  check_Syntax(v);
 
   /* for (auto &x : v) { */
   /*   std::cout << x << "\n"; */
@@ -226,9 +258,6 @@ int main() {
 
     number_Line++;
   }
-
-  std::vector<std::string> keywords = {"print", "for",   "in",    "range",
-                                       "int",   "input", "return"};
 
   auto it = modules.begin();
   auto it2 = modules.begin();
