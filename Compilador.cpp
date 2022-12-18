@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <ratio>
 #include <regex>
 #include <string>
@@ -401,6 +402,7 @@ void check_Syntax(std::vector<std::string> &str) {
   int commas;
   int times = 0;
 
+  std::map<std::string, std::string> variables{};
   std::vector<std::string> saved_Variables{};
 
   for (auto line : str) {
