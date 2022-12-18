@@ -1,16 +1,21 @@
 #include "bits/stdc++.h"
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <map>
 #include <ratio>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+std::map<int, std::string> modules{};
 std::vector<std::string> keywords = {"print",  "def",    "for",  "in", "range",
                                      "append", "return", "len(", "int"};
+std::vector<std::string> saved_Variables{};
 
 std::string get_Function_Name(std::string &str) {
   std::string delimiter = " ";
@@ -65,13 +70,12 @@ void message_Error(std::string error_Type, const std::string &line,
   exit(-1);
 }
 
-std::vector<std::string> tokens_Functions(const std::string &str) {
+std::map<std::string, std::string> tokens_Functions(const std::string &str) {
   std::string str_Copy = str;
-  std::vector<std::string> variables = {};
+  std::map<std::string, std::string> variables = {};
   std::vector<std::string> tokensF = {
       str_Copy.substr(0, 3).replace(0, 3, "_Funcion_")};
 
-  /* std::cout << "\n" << new_Str << "\n"; */
   str_Copy.erase(0, 3);
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
@@ -88,7 +92,7 @@ std::vector<std::string> tokens_Functions(const std::string &str) {
       position = str_Copy.find(',');
       tokensF.push_back(
           str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
-      variables.push_back(str_Copy.substr(0, position));
+      variables.insert({str_Copy.substr(0, position), "std::string"});
       str_Copy.erase(0, position);
       tokensF.push_back(str_Copy.substr(0, 1));
       str_Copy.erase(0, 1);
@@ -98,7 +102,7 @@ std::vector<std::string> tokens_Functions(const std::string &str) {
   position = str_Copy.find(')');
   tokensF.push_back(
       str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
-  variables.push_back(str_Copy.substr(0, position));
+  variables.insert({str_Copy.substr(0, position), "std::string"});
   str_Copy.erase(0, position);
   tokensF.push_back(str_Copy.substr(0, 2));
 
@@ -130,6 +134,57 @@ bool is_Function(const std::string &str, int &number_Line) {
     else
       message_Error("Identacion o Sintactico", str, number_Line);
   }
+  return false;
+}
+
+bool is_Print(const std::string &str, int spaces_At_The_Beggining, int commas) {
+  std::regex regex_Print("((\\s){" + std::to_string(spaces_At_The_Beggining) +
+                         "}(print)(\\()(\\w)+((\\s*)\\,(\\s*)\\w+){" +
+                         std::to_string(commas) + "}(\\s*)\\))|(\\s){" +
+                         std::to_string(spaces_At_The_Beggining) +
+                         "}(print)(\\()(\")(.*)(\")(\\))(\\s*)(\\s*)");
+
+  if (std::regex_match(str, regex_Print))
+    return true;
+  return false;
+}
+
+bool is_For(const std::string &str, int spaces_At_The_Beggining) {
+  std::regex regex_For(
+      "(\\s*){" + std::to_string(spaces_At_The_Beggining) +
+      "}(for)(\\s+)(\\w+)(\\s+)(in)(\\s+)(range)(\\s*)(\\()(\\s*)([0-9])(\\s*"
+      ")(\\,)(\\s*)((\\w+)|(len)\\((\\w+)\\))(\\s*)(\\))(\\:)(\\s*)");
+
+  if (std::regex_match(str, regex_For))
+    return true;
+  return false;
+}
+
+bool is_Assignment(const std::string &str, int spaces_At_The_Beggining) {
+  std::regex regex_Assignment("(\\s*){" +
+                              std::to_string(spaces_At_The_Beggining) +
+                              "}(\\w*)(\\s*)(\\=)(\\s*)(.*)");
+  if (std::regex_match(str, regex_Assignment))
+    return true;
+  return false;
+}
+
+bool is_Method(const std::string &str, int spaces_At_The_Beggining) {
+  std::regex regex_Method(
+      "(\\s*){" + std::to_string(spaces_At_The_Beggining) +
+      "}(\\w+)(\\.)(\\w+)(\\s*)(\\()(\\s*)(\\w+)(\\s*)(\\))(\\s*)");
+
+  if (std::regex_match(str, regex_Method))
+    return true;
+  return false;
+}
+
+bool is_Return(const std::string &str, int spaces_At_The_Beggining) {
+  std::regex regex_Return("(\\s*){" + std::to_string(spaces_At_The_Beggining) +
+                          "}(return)(\\s*)(\\w+)(\\s*)");
+
+  if (std::regex_match(str, regex_Return))
+    return true;
   return false;
 }
 
@@ -269,17 +324,50 @@ void tokens_Print(const std::string &str, int begin_Spaces) {
   std::cout << "\n";
 }
 
-void tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
+std::string check_Variable(std::string variable) {
+  for (auto x : saved_Variables) {
+    if (variable == x)
+      return "USED_VARIABLE";
+  }
+  saved_Variables.push_back(variable);
+
+  return "NEW_VARIABLE";
+}
+
+std::string data_Type(const std::string &str) {
+  for (auto x = 0; x < int(str.size()); x++) {
+    if (str[x] == '+' || str[x] == '-' || str[x] == '*' || str[x] == '/') {
+      return "int";
+    } else if (str[x] == '[') {
+      return "std::vector";
+    } else if (str[x] == 'i' && str[x + 1] == 'n' && str[x + 2] == 't') {
+      return "int";
+    } else if (std::isdigit(str[x])) {
+      return "int";
+    } 
+  }
+  return "std::string";
+}
+
+std::map<std::string, std::string>
+tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
   std::string str_Copy = str;
   std::vector<std::string> tokensA = {};
+  std::map<std::string, std::string> variables = {};
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
   int position = str_Copy.find('=');
-  tokensA.push_back(
-      str_Copy.substr(0, position).replace(0, position, "_VARIABLE_"));
+
+  std::string aux_Name = str_Copy.substr(0, position);
+  std::string condition = check_Variable(str_Copy.substr(0, position));
+  tokensA.push_back(condition);
   str_Copy.erase(0, position + 1);
 
-  tokensA.push_back("_ASSIGNMENT_");
+  tokensA.push_back("_ASSIGNMENT_SIGN_");
+
+  if (condition == "NEW_VARIABLE") {
+    variables.insert({aux_Name, data_Type(str_Copy)});
+  }
 
   tokensA.push_back(str_Copy.substr(0, str_Copy.length())
                         .replace(0, str_Copy.length(), "_ASSIGNED_VALUE_"));
@@ -288,6 +376,8 @@ void tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
     std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " ";
   }
   std::cout << "\n";
+
+  return variables;
 }
 
 void tokens_Return(const std::string &str, int spaces_At_The_Beggining) {
@@ -397,76 +487,66 @@ void tokens_Method(const std::string &str, int spaces_At_The_Beggining) {
   std::cout << "\n";
 }
 
+bool check_If_Return(const std::string &str) {
+
+}
+
 void check_Syntax(std::vector<std::string> &str) {
   int spaces_At_The_Beggining = 0;
   int commas;
   int times = 0;
 
+  /* First is name, Second is type */
   std::map<std::string, std::string> variables{};
-  std::vector<std::string> saved_Variables{};
+  std::map<std::string, std::string> variables_Assignmented{};
+  std::map<std::string, std::string> functions{};
 
   for (auto line : str) {
     spaces_At_The_Beggining = count_Beggining_Spaces(line);
     commas = count_Commas(line);
-
-    std::regex regex_Print("((\\s){" + std::to_string(spaces_At_The_Beggining) +
-                           "}(print)(\\()(\\w)+((\\s*)\\,(\\s*)\\w+){" +
-                           std::to_string(commas) + "}(\\s*)\\))|(\\s){" +
-                           std::to_string(spaces_At_The_Beggining) +
-                           "}(print)(\\()(\")(.*)(\")(\\))(\\s*)(\\s*)");
-
-    std::regex regex_Return("(\\s*){" +
-                            std::to_string(spaces_At_The_Beggining) +
-                            "}(return)(\\s*)(\\w+)(\\s*)");
 
     std::regex regex_Input("(\\s){" + std::to_string(spaces_At_The_Beggining) +
                            "}(\\w)+(\\s*)(\\=)(\\s*)((\\w)(\\w+)(\\()(\\s*)("
                            "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))(\\))|(("
                            "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))))(\\s*)");
 
-    std::regex function_Without_Parameters(
-        "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s)*\\)\\:(\\s*)");
-    std::regex function_With_Parameters(
-        "(def)(\\s)*(\\w)\\w+(\\s)*\\((\\s*)\\w+((\\s*)\\,(\\s*)\\w+){" +
-        std::to_string(commas) + "}(\\s*)\\)(\\s*)\\:(\\s*)");
-
-    std::regex regex_Assignment("(\\s*){" +
-                                std::to_string(spaces_At_The_Beggining) +
-                                "}(\\w*)(\\s*)(\\=)(\\s*)(.*)");
-
-    std::regex regex_For(
-        "(\\s*){" + std::to_string(spaces_At_The_Beggining) +
-        "}(for)(\\s+)(\\w+)(\\s+)(in)(\\s+)(range)(\\s*)(\\()(\\s*)([0-9])(\\s*"
-        ")(\\,)(\\s*)((\\w+)|(len)\\((\\w+)\\))(\\s*)(\\))(\\:)(\\s*)");
-
-    std::regex regex_Method(
-        "(\\s*){" + std::to_string(spaces_At_The_Beggining) +
-        "}(\\w+)(\\.)(\\w+)(\\s*)(\\()(\\s*)(\\w+)(\\s*)(\\))(\\s*)");
-
-    if (std::regex_match(line, function_With_Parameters) ||
-        std::regex_match(line, function_Without_Parameters)) {
-      saved_Variables = tokens_Functions(line);
-      std::cout << "Saved variables --> ";
-      for (auto x : saved_Variables) {
-        std::cout << x << ",";
-      }
-      std::cout << "\n";
-    } else if (std::regex_match(line, regex_Print)) {
+    if (is_Function(line, times)) {
+      variables = tokens_Functions(line);
+    } else if (is_Print(line, spaces_At_The_Beggining, commas)) {
       tokens_Print(line, spaces_At_The_Beggining);
-    } else if (std::regex_match(line, regex_For)) {
+    } else if (is_For(line, spaces_At_The_Beggining)) {
       tokens_For(line, spaces_At_The_Beggining);
-    } else if (std::regex_match(line, regex_Assignment)) {
-      tokens_Assignment(line, spaces_At_The_Beggining);
-    } else if (std::regex_match(line, regex_Method)) {
+    } else if (is_Assignment(line, spaces_At_The_Beggining)) {
+      variables_Assignmented = tokens_Assignment(line, spaces_At_The_Beggining);
+    } else if (is_Method(line, spaces_At_The_Beggining)) {
       tokens_Method(line, spaces_At_The_Beggining);
-    } else if (std::regex_match(line, regex_Return)) {
+    } else if (is_Return(line, spaces_At_The_Beggining)) {
       tokens_Return(line, spaces_At_The_Beggining);
     } else {
       std::cout << line << " --- No se que es esto xd ---\n";
       /* message_Error("Sintaxis", line, times); */
     }
     times++;
+    variables.insert(variables_Assignmented.begin(),
+                     variables_Assignmented.end());
   }
+  for (auto x : variables) {
+    std::cout << x.first << " : " << x.second << ", ";
+  }
+  std::cout << "\n\n";
+}
+
+/* std::string tranlate_Statement(std::vector<std::string> &code) { */
+/*   for (auto line : code) { */
+/*   } */
+/* } */
+
+void transpile(const std::string &code) {
+  std::ofstream cpp_Code("Final.cpp");
+
+  cpp_Code << "#include <bits/stdc++.h>" << std::endl;
+
+  cpp_Code.close();
 }
 
 void read_Functions(std::vector<std::string> &lines, const int start,
@@ -474,6 +554,7 @@ void read_Functions(std::vector<std::string> &lines, const int start,
 
   std::vector<std::string> v(&lines[start], &lines[end]);
   check_Indentation(v);
+  saved_Variables.clear();
   check_Syntax(v);
   std::cout << "\n\n";
 
@@ -493,7 +574,6 @@ int main() {
     return -1;
   }
 
-  std::map<int, std::string> modules{};
   bool found_Main = false;
   std::string line;
   std::vector<std::string> lines{};
@@ -511,7 +591,7 @@ int main() {
     if (is_Function(line, number_Line)) {
       modules.insert({number_Line, get_Function_Name(line)});
     } else if (number_Line >= it->first + 1 && is_Main(line) && !found_Main) {
-      modules.insert({number_Line, "Main"});
+      modules.insert({number_Line, "main"});
       found_Main = true;
     }
 
