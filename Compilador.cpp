@@ -75,43 +75,37 @@ void message_Error(std::string error_Type, const std::string &line,
   exit(-1);
 }
 
-std::vector<std::string> tokens_Functions(const std::string &str) {
+void tokens_Functions(const std::string &str) {
   std::string str_Copy = str;
-  std::vector<std::string> tokensF = {str_Copy.substr(0, 3)};
 
   str_Copy.erase(0, 3);
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
 
   int position = str_Copy.find('(');
-  tokensF.push_back(str_Copy.substr(0, position));
   str_Copy.erase(0, position);
-  tokensF.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   int commas = count_Commas(str_Copy);
   if (commas != 0) {
     for (int i = 0; i < commas; i++) {
       position = str_Copy.find(',');
-      tokensF.push_back(str_Copy.substr(0, position));
+
       variables.insert({str_Copy.substr(0, position), "std::string"});
       str_Copy.erase(0, position);
-      tokensF.push_back(str_Copy.substr(0, 1));
+
       str_Copy.erase(0, 1);
     }
   }
 
   position = str_Copy.find(')');
-  tokensF.push_back(str_Copy.substr(0, position));
   variables.insert({str_Copy.substr(0, position), "std::string"});
   str_Copy.erase(0, position);
-  tokensF.push_back(str_Copy.substr(0, 2));
 
   /* for (auto x : tokensF) { */
   /*   std::cout << x << " "; */
   /* } */
   /* std::cout << "\n"; */
-  return tokensF;
 }
 
 bool is_Function(const std::string &str, int &number_Line) {
@@ -301,15 +295,12 @@ std::string check_Variable_2(std::string str) {
   return "NEW_VARIABLE";
 }
 
-std::vector<std::string> tokens_Print(const std::string &str, int begin_Spaces,
-                                      int &times) {
+void tokens_Print(const std::string &str, int begin_Spaces, int &times) {
   std::string str_Copy = str;
 
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
-  std::vector<std::string> tokensP = {str_Copy.substr(0, 5)};
   str_Copy.erase(0, 5);
-  tokensP.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   int position;
@@ -321,32 +312,24 @@ std::vector<std::string> tokens_Print(const std::string &str, int begin_Spaces,
       std::string condition = check_Variable_2(str_Copy.substr(0, position));
       if (condition == "NEW_VARIABLE")
         message_Error("Variable " + str_Copy.substr(0, position), str, times);
-
-      tokensP.push_back(
-          str_Copy.substr(0, position).replace(0, position, condition));
       str_Copy.erase(0, position);
-      tokensP.push_back(str_Copy.substr(0, 1));
       str_Copy.erase(0, 1);
     }
   } else if (comas == 0 && str_Copy.find('\"') != std::string::npos) {
     str_Copy.erase(0, 1);
-    tokensP.push_back("\"");
+
     position = str_Copy.find("\"");
     /* std::cout << str_Copia << "\n"; */
-    tokensP.push_back(str_Copy.substr(0, position));
+
     /* std::cout << "\t\t\t\t\t" << str_Copy << "\n"; */
     str_Copy.erase(0, position + 1);
-    tokensP.push_back("\"");
-    tokensP.push_back(str_Copy.substr(0, 1));
+
   } else if (comas == 0 && str_Copy.find('\"') == std::string::npos) {
     position = str_Copy.find(')');
     std::string condition = check_Variable_2(str_Copy.substr(0, position));
     if (condition == "NEW_VARIABLE")
       message_Error("Variable " + str_Copy.substr(0, position), str, times);
-    tokensP.push_back(
-        str_Copy.substr(0, position).replace(0, position, condition));
     str_Copy.erase(0, position);
-    tokensP.push_back(str_Copy.substr(0, 1));
   }
 
   if (comas != 0) {
@@ -354,18 +337,13 @@ std::vector<std::string> tokens_Print(const std::string &str, int begin_Spaces,
     std::string condition = check_Variable_2(str_Copy.substr(0, position));
     if (condition == "NEW_VARIABLE")
       message_Error("Variable " + str_Copy.substr(0, position), str, times);
-    tokensP.push_back(
-        str_Copy.substr(0, position).replace(0, position, condition));
     str_Copy.erase(0, position);
-    tokensP.push_back(str_Copy.substr(0, 1));
   }
 
   /* for (auto x : tokensP) { */
   /*   std::cout << std::string(begin_Spaces, ' ') << x << " "; */
   /* } */
   /* std::cout << "\n"; */
-
-  return tokensP;
 }
 
 std::string data_Type(const std::string &str) {
@@ -386,7 +364,6 @@ std::string data_Type(const std::string &str) {
 std::map<std::string, std::string>
 tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
   std::string str_Copy = str;
-  std::vector<std::string> tokensA = {};
   /* std::map<std::string, std::string> variables = {}; */
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
@@ -394,24 +371,16 @@ tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
 
   std::string aux_Name = str_Copy.substr(0, position);
   std::string condition = check_Variable(str_Copy.substr(0, position));
-  tokensA.push_back(aux_Name);
   str_Copy.erase(0, position + 1);
-
-  tokensA.push_back("=");
 
   if (condition == "NEW_VARIABLE") {
     variables.insert({aux_Name, data_Type(str_Copy)});
   }
 
-  tokensA.push_back(str_Copy.substr(0, str_Copy.length()));
-
   /* for (auto x : tokensA) { */
   /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
   /* } */
   /* std::cout << "\n"; */
-
-  tokens.reserve(tokensA.size());
-  tokens.insert(tokens.end(), tokensA.begin(), tokensA.end());
 
   return variables;
 }
@@ -419,12 +388,10 @@ tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
 std::string tokens_Return(const std::string &str, int spaces_At_The_Beggining,
                           int times) {
   std::string str_Copy = str;
-  std::vector<std::string> tokensR = {};
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
 
   int position = str_Copy.find('n');
-  tokensR.push_back(str_Copy.substr(0, position));
   str_Copy.erase(0, position + 1);
 
   std::string condition =
@@ -432,7 +399,6 @@ std::string tokens_Return(const std::string &str, int spaces_At_The_Beggining,
   if (condition == "NEW_VARIABLE")
     message_Error("Variable " + str_Copy.substr(0, str_Copy.length()), str,
                   times);
-  tokensR.push_back(str_Copy.substr(0, str_Copy.length()));
 
   /* std::cout << str_Copy << "\n\n\n\n"; */
   /* for (auto x : tokensR) { */
@@ -440,115 +406,89 @@ std::string tokens_Return(const std::string &str, int spaces_At_The_Beggining,
   /* } */
   /* std::cout << "\n"; */
 
-  tokens.reserve(tokensR.size());
-  tokens.insert(tokens.end(), tokensR.begin(), tokensR.end());
-
   return str_Copy;
 }
 
-std::vector<std::string> tokens_For(const std::string &str,
-                                    int spaces_At_The_Beggining, int &times) {
+void tokens_For(const std::string &str, int spaces_At_The_Beggining,
+                int &times) {
   std::string str_Copy = str;
-  std::vector<std::string> tokensF = {};
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
 
-  tokensF.push_back(str_Copy.substr(0, 3));
   str_Copy.erase(0, 3);
 
   int position = str_Copy.find("in");
   std::string condition = check_Variable_2(str_Copy.substr(0, position));
-  tokensF.push_back(str_Copy.substr(0, position));
 
   str_Copy.erase(0, position);
-  tokensF.push_back(str_Copy.substr(0, 2));
   str_Copy.erase(0, 2);
-  tokensF.push_back(str_Copy.substr(0, 5));
   str_Copy.erase(0, 5);
-  tokensF.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   position = str_Copy.find(",");
-  tokensF.push_back(str_Copy.substr(0, position));
   str_Copy.erase(0, position);
-  tokensF.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   if (str_Copy.find('(') != std::string::npos) {
-    tokensF.push_back(str_Copy.substr(0, 3));
+
     str_Copy.erase(0, 3);
-    tokensF.push_back(str_Copy.substr(0, 1));
+
     str_Copy.erase(0, 1);
 
     position = str_Copy.find(')');
     std::string condition = check_Variable_2(str_Copy.substr(0, position));
     if (condition == "NEW_VARIABLE")
       message_Error("Variable " + str_Copy.substr(0, position), str, times);
-    tokensF.push_back(str_Copy.substr(0, position));
+
     str_Copy.erase(0, position);
-    tokensF.push_back(str_Copy.substr(0, 1));
+
     str_Copy.erase(0, 1);
   } else {
     position = str_Copy.find(')');
     std::string condition = check_Variable_2(str_Copy.substr(0, position));
     if (condition == "NEW_VARIABLE")
       message_Error("Variable " + str_Copy.substr(0, position), str, times);
-    tokensF.push_back(str_Copy.substr(0, position));
-
     str_Copy.erase(0, position);
   }
-  tokensF.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
-  tokensF.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   /* for (auto x : tokensF) { */
   /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
   /* } */
   /* std::cout << "\n"; */
-
-  return tokensF;
 }
 
-std::vector<std::string> tokens_Method(const std::string &str,
-                                       int spaces_At_The_Beggining, int times) {
+void tokens_Method(const std::string &str, int spaces_At_The_Beggining,
+                   int times) {
   std::string str_Copy = str;
   str_Copy.erase(std::remove_if(str_Copy.begin(), str_Copy.end(), ::isspace),
                  str_Copy.end());
-  std::vector<std::string> tokensM = {};
 
   int position = str_Copy.find('.');
   std::string condition = check_Variable_2(str_Copy.substr(0, position));
   if (condition == "NEW_VARIABLE")
     message_Error("Variable " + str_Copy.substr(0, position), str, times);
-  tokensM.push_back(str_Copy.substr(0, position));
 
   str_Copy.erase(0, position);
-  tokensM.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   position = str_Copy.find('(');
-  tokensM.push_back(str_Copy.substr(0, position));
   str_Copy.erase(0, position);
-  tokensM.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   position = str_Copy.find(')');
   condition = check_Variable_2(str_Copy.substr(0, position));
   if (condition == "NEW_VARIABLE")
     message_Error("Variable " + str_Copy.substr(0, position), str, times);
-  tokensM.push_back(str_Copy.substr(0, position));
 
   str_Copy.erase(0, position);
-  tokensM.push_back(str_Copy.substr(0, 1));
   str_Copy.erase(0, 1);
 
   /* for (auto x : tokensM) { */
   /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
   /* } */
   /* std::cout << "\n"; */
-
-  return tokensM;
 }
 
 std::string data_Type_Function(std::string &str,
@@ -567,28 +507,6 @@ std::string data_Type_Function(std::string &str,
   /* std::cout << data_Type << "\n\n\n\n"; */
   return data_Type;
 }
-
-/* void transpile() { */
-/*   std::ofstream cpp_Code("Final.cpp"); */
-
-/*   cpp_Code << "#include <bits/stdc++.h>\n" << std::endl; */
-/*   auto it = functions.begin(); */
-
-/*   /1* std::cout << it->first << " : " << it->second << "\n"; *1/ */
-/*   if (tokens[0] == "def") { */
-/*     cpp_Code << "hola" */
-/*              << "\n"; */
-/*   } */
-
-/*   /1* for (auto x : tokens) { *1/ */
-/*   /1*   if (x == "def") { *1/ */
-/*   /1*     std::cout << it->first << " : " << it->second << "\n"; *1/ */
-/*   /1*     cpp_Code << it->second << " " << it->first << "\n"; *1/ */
-/*   /1*   } *1/ */
-/*   /1* } *1/ */
-
-/*   cpp_Code.close(); */
-/* } */
 
 void check_Syntax(std::vector<std::string> &str,
                   std::map<int, std::string>::iterator &hola,
@@ -613,23 +531,15 @@ void check_Syntax(std::vector<std::string> &str,
                            "input)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\))))(\\s*)");
 
     if (is_Function(line, times)) {
-      str_Tokens = tokens_Functions(line);
-      tokens.reserve(str_Tokens.size());
-      tokens.insert(tokens.end(), str_Tokens.begin(), str_Tokens.end());
+      tokens_Functions(line);
     } else if (is_Print(line, spaces_At_The_Beggining, commas)) {
-      str_Tokens = tokens_Print(line, spaces_At_The_Beggining, times);
-      tokens.reserve(str_Tokens.size());
-      tokens.insert(tokens.end(), str_Tokens.begin(), str_Tokens.end());
+      tokens_Print(line, spaces_At_The_Beggining, times);
     } else if (is_For(line, spaces_At_The_Beggining)) {
-      str_Tokens = tokens_For(line, spaces_At_The_Beggining, times);
-      tokens.reserve(str_Tokens.size());
-      tokens.insert(tokens.end(), str_Tokens.begin(), str_Tokens.end());
+      tokens_For(line, spaces_At_The_Beggining, times);
     } else if (is_Assignment(line, spaces_At_The_Beggining)) {
       variables_Assignmented = tokens_Assignment(line, spaces_At_The_Beggining);
     } else if (is_Method(line, spaces_At_The_Beggining)) {
-      str_Tokens = tokens_Method(line, spaces_At_The_Beggining, times);
-      tokens.reserve(str_Tokens.size());
-      tokens.insert(tokens.end(), str_Tokens.begin(), str_Tokens.end());
+      tokens_Method(line, spaces_At_The_Beggining, times);
     } else if (is_Return(line, spaces_At_The_Beggining)) {
       std::string returned_Variable =
           tokens_Return(line, spaces_At_The_Beggining, times);
@@ -717,7 +627,7 @@ void read_Functions(std::vector<std::string> &lines, const int start,
       } else {
         cpp_Code << "int " << prueba->first << "(){\n";
       }
-    } 
+    }
     if (is_Print(line_By_Line[i], 0, commas)) {
       std::cout << line_By_Line[i] << "\n";
       std::string sub;
@@ -725,7 +635,6 @@ void read_Functions(std::vector<std::string> &lines, const int start,
       cpp_Code << std::string(spaces_At_The_Beggining, ' ') << "std::cout << "
                << " \n ";
       if (line_By_Line[i].find("\"") == std::string::npos) {
-
       }
     }
     /* std::cout << line_By_Line[i] << " " << spaces_At_The_Beggining << "\n";
