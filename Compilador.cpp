@@ -563,21 +563,9 @@ void check_Syntax(std::vector<std::string> &str,
     tokens.push_back("NEW LINE");
   }
 
-  /* auto prueba = functions.begin(); */
-  /* for (int i = 0; i < int(tokens.size()); i++) { */
-  /*   if (tokens[i] == "def") { */
-  /*     tokens.erase(tokens.begin()); */
-  /*     tokens.erase(tokens.begin()); */
-  /*     cpp_Code << prueba->second << " " << prueba->first << tokens[i] <<
-   * "\n"; */
-
-  /*     std::cout << tokens[i] << ", "; */
-  /*   } */
-  /*   if (tokens[i] == "NEW LINE") { */
-  /*     cpp_Code << "\n"; */
-  /*   } */
+  /* for (auto x : variables) { */
+  /*   std::cout << x.first << " : " << x.second << "\n"; */
   /* } */
-
   /* std::cout << "\n"; */
 }
 
@@ -593,14 +581,15 @@ void read_Functions(std::vector<std::string> &lines, const int start,
   functions.clear();
   check_Syntax(line_By_Line, iterator_Modules, cpp_Code);
 
+  std::map<std::string, std::string>::iterator it_Varabiales;
   int times = 0;
   for (int i = 0; i < int(line_By_Line.size()); i++) {
+    std::string copy_Line = line_By_Line[i];
     int spaces_At_The_Beggining = count_Beggining_Spaces(line_By_Line[i]);
     int commas = count_Commas(line_By_Line[i]);
     line_By_Line[i].erase(std::remove_if(line_By_Line[i].begin(),
                                          line_By_Line[i].end(), ::isspace),
                           line_By_Line[i].end());
-    std::map<std::string, std::string>::iterator it_Varabiales;
     if (line_By_Line[i].find("def") != std::string::npos ||
         (spaces_At_The_Beggining == 0 && times == 0)) {
       times++;
@@ -629,13 +618,34 @@ void read_Functions(std::vector<std::string> &lines, const int start,
       }
     }
     if (is_Print(line_By_Line[i], 0, commas)) {
-      std::cout << line_By_Line[i] << "\n";
       std::string sub;
       line_By_Line[i].erase(0, line_By_Line[i].find('(') + 1);
-      cpp_Code << std::string(spaces_At_The_Beggining, ' ') << "std::cout << "
-               << " \n ";
+      cpp_Code << std::string(spaces_At_The_Beggining, ' ') << "std::cout << ";
       if (line_By_Line[i].find("\"") == std::string::npos) {
+        if (commas > 0) {
+          for (int j = 0; j < commas; j++) {
+            sub = line_By_Line[i].substr(0, line_By_Line[i].find(','));
+            it_Varabiales = variables.find(sub);
+            cpp_Code << it_Varabiales->first << " << ";
+            line_By_Line[i].erase(0, line_By_Line[i].find(',') + 1);
+          }
+          sub = line_By_Line[i].substr(0, line_By_Line[i].find(')'));
+          it_Varabiales = variables.find(sub);
+          cpp_Code << it_Varabiales->first << " << std::endl;\n";
+        } else {
+          sub = line_By_Line[i].substr(0, line_By_Line[i].find(')'));
+          it_Varabiales = variables.find(sub);
+          cpp_Code << it_Varabiales->first << " << std::endl;\n";
+        }
+      } else {
+        copy_Line.erase(0, copy_Line.find('\"'));
+        line_By_Line[i].erase(0, line_By_Line[i].find('\"') + 1);
+        cpp_Code << copy_Line.substr(0, copy_Line.size() - 1)
+                 << " << std::endl;\n";
       }
+    }
+    if (is_Assignment(line_By_Line[i], 0)) {
+      std::cout << line_By_Line[i] << std::endl;
     }
     /* std::cout << line_By_Line[i] << " " << spaces_At_The_Beggining << "\n";
      */
