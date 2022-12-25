@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <ratio>
 #include <regex>
@@ -19,8 +20,10 @@ std::vector<std::string> keywords = {"print",  "def",    "for",  "in", "range",
 
 std::vector<std::string> saved_Variables{};
 std::map<std::string, std::string> functions{};
+std::map<std::string, std::string> functions_Aux{};
 std::map<std::string, std::string> variables{};
 std::map<std::string, std::string> status_Variables{};
+std::string variable_Name = "";
 
 std::string get_Function_Name(std::string &str) {
   std::string delimiter = " ";
@@ -195,6 +198,17 @@ bool is_Return(const std::string &str, int spaces_At_The_Beggining) {
 bool is_Main(const std::string &str) {
   std::regex r("\\S.*");
   if (std::regex_match(str, r) || (str == "if __name__ == \"__main__\":"))
+    return true;
+  return false;
+}
+
+bool is_Function_Call(const std::string &str, int spaces_At_The_Beggining) {
+  std::regex regex_Impresion("(\\s){" +
+                             std::to_string(spaces_At_The_Beggining) +
+                             "}(impresion)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\s*)("
+                             "\\,)(\\s*)(\\w+)(\\s*)(\\))");
+
+  if (std::regex_match(str, regex_Impresion))
     return true;
   return false;
 }
@@ -581,21 +595,37 @@ void translate_Functions(
   auto prueba = functions.begin();
   if (line_By_Line.find("def") != std::string::npos) {
     line_By_Line.erase(0, line_By_Line.find('(') + 1);
-    cpp_Code << prueba->second << " " << prueba->first << "(";
+    bool is_Void = false;
+    if (prueba->second != "void") {
+      is_Void = true;
+      cpp_Code << "template<class TIPO_DATO>\n";
+    }
 
+    cpp_Code << prueba->second << " " << prueba->first << "(";
     if (commas > 0) {
       for (int j = 0; j < commas; j++) {
         sub = line_By_Line.substr(0, line_By_Line.find(','));
         it_Varabiales = variables.find(sub);
-        cpp_Code << it_Varabiales->second << " " << it_Varabiales->first
-                 << ", ";
+        if (is_Void) {
+          cpp_Code << "TIPO_DATO"
+                   << " " << it_Varabiales->first << ", ";
+        } else {
+          cpp_Code << it_Varabiales->second << " " << it_Varabiales->first
+                   << ", ";
+        }
         line_By_Line.erase(0, line_By_Line.find(',') + 1);
       }
     }
     sub = line_By_Line.substr(0, line_By_Line.find(')'));
     it_Varabiales = variables.find(sub);
     line_By_Line.erase(0, line_By_Line.find(')' + 1));
-    cpp_Code << it_Varabiales->second << " " << it_Varabiales->first << "){\n";
+    if (is_Void) {
+      cpp_Code << "TIPO_DATO"
+               << " " << it_Varabiales->first << "){\n";
+    } else {
+      cpp_Code << it_Varabiales->second << " " << it_Varabiales->first
+               << "){\n";
+    }
   } else {
     cpp_Code << "int " << prueba->first << "(){\n";
   }
@@ -642,6 +672,7 @@ void read_Functions(std::vector<std::string> &lines, const int start,
   check_Indentation(line_By_Line);
   saved_Variables.clear();
   variables.clear();
+  functions_Aux.insert(functions.begin(), functions.end());
   functions.clear();
   status_Variables.clear();
   check_Syntax(line_By_Line, iterator_Modules, cpp_Code);
@@ -670,6 +701,16 @@ void read_Functions(std::vector<std::string> &lines, const int start,
       it_Varabiales = status_Variables.find(sub);
       line_By_Line[i].erase(0, line_By_Line[i].find('=') + 1);
       cpp_Code << std::string(spaces_At_The_Beggining, ' ');
+      std::string namee = it_Varabiales->first + "2";
+
+      std::string sub2 = line_By_Line[i].substr(0, line_By_Line[i].find('('));
+      /* std::cout << sub2 << "\n"; */
+      if (sub2 == "llenarLista") {
+        cpp_Code << "std::vector<int>"
+                 << " " << namee;
+        cpp_Code << "=" << line_By_Line[i] << ";\n";
+        continue;
+      }
 
       /* Si encontramos la palabra input */
       if (is_Input(copy_Line, spaces_At_The_Beggining)) {
@@ -677,6 +718,9 @@ void read_Functions(std::vector<std::string> &lines, const int start,
         copy_Line.erase(0, copy_Line.find('\"') + 1);
         cpp_Code << "\"" << copy_Line.substr(0, copy_Line.find('\"'))
                  << "\";\n";
+
+        it_Varabiales = variables.find(sub);
+        cpp_Code << it_Varabiales->second << " " << sub << ";\n";
         cpp_Code << std::string(spaces_At_The_Beggining, ' ') << "std::cin >> "
                  << sub << ";\n";
       }
@@ -697,16 +741,69 @@ void read_Functions(std::vector<std::string> &lines, const int start,
           cpp_Code << it_Varabiales->second << " " << it_Varabiales->first
                    << " {};\n";
         } else {
-          cpp_Code << it_Varabiales->second << " " << it_Varabiales->first
-                   << " ";
-          cpp_Code << "=" << line_By_Line[i] << ";\n";
+          sub = line_By_Line[i].substr(0, line_By_Line[i].find('('));
+          auto it_Functions = functions_Aux.find(sub);
+          if (it_Functions != functions_Aux.end()) {
+            cpp_Code << it_Functions->second << " " << it_Varabiales->first
+                     << " ";
+            cpp_Code << "=" << sub << "(" << "Datos2" << ")" << ";\n";
+          } else {
+            cpp_Code << it_Varabiales->second << " " << it_Varabiales->first
+                     << " ";
+            cpp_Code << "=" << line_By_Line[i] << ";\n";
+          }
         }
       }
     }
     if (is_For(copy_Line, spaces_At_The_Beggining)) {
+      line_By_Line[i].erase(0, 3);
+      cpp_Code << std::string(spaces_At_The_Beggining, ' ') << "for(int ";
+      std::string variable_For = line_By_Line[i].substr(0, 1);
+      cpp_Code << variable_For << " = ";
+
+      line_By_Line[i].erase(0, 9);
+      cpp_Code << line_By_Line[i].substr(0, 1) << "; " << variable_For << " < ";
+      line_By_Line[i].erase(0, 2);
+      if (line_By_Line[i].find('(') != std::string::npos) {
+        line_By_Line[i].erase(0, 4);
+        cpp_Code << line_By_Line[i].substr(0, line_By_Line[i].find(')'))
+                 << ".size(); ";
+      } else {
+        cpp_Code << line_By_Line[i].substr(0, line_By_Line[i].find(')'))
+                 << "; ";
+      }
+      cpp_Code << variable_For << " ++){\n";
+    }
+    if (is_Method(copy_Line, spaces_At_The_Beggining)) {
+      cpp_Code << std::string(spaces_At_The_Beggining, ' ')
+               << line_By_Line[i].substr(0, line_By_Line[i].find('.')) << ".";
+
+      line_By_Line[i].erase(0, line_By_Line[i].find('.') + 1 + 6);
+      cpp_Code << "push_back" << line_By_Line[i] << ";\n";
+    }
+    if (is_Return(copy_Line, spaces_At_The_Beggining)) {
+      cpp_Code << copy_Line << ";\n";
+    }
+    if (is_Function_Call(copy_Line, spaces_At_The_Beggining)) {
+      line_By_Line[i].erase(0, line_By_Line[i].find('(') + 1);
+      copy_Line.erase(0, copy_Line.find('\"') + 1);
+      std::string sub = copy_Line;
+      copy_Line.erase(0, copy_Line.find('\"') + 2);
+
+      cpp_Code << "impresion(\"" << sub.substr(0, sub.find('\"'))
+               << "\",std::to_string(";
+      cpp_Code << copy_Line.substr(0, copy_Line.find(')')) << "));\n";
     }
 
-    /* std::cout << "\n\n"; */
+    if (i == int(line_By_Line.size()) - 1) {
+      cpp_Code << "}\n";
+    }
+    if (i < line_By_Line.size() - 1) {
+      if (spaces_At_The_Beggining >
+          count_Beggining_Spaces(line_By_Line[i + 1])) {
+        cpp_Code << std::string(spaces_At_The_Beggining - 4, ' ') << "}\n";
+      }
+    }
   }
   cpp_Code << "\n";
 }
@@ -761,5 +858,6 @@ int main() {
     ++it;
   }
   cpp_Code.close();
+
   return 0;
 }
