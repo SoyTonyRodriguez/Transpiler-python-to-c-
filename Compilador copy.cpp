@@ -72,7 +72,7 @@ int count_Commas(std::string const &str) {
 }
 
 void message_Error(std::string error_Type, const std::string &line,
-                   int times) {
+                   int &times) {
   std::cout << "Error of: " << error_Type << " line " << times + 1 << "\n\t"
             << line << "\n\t^\n";
   exit(-1);
@@ -203,16 +203,13 @@ bool is_Main(const std::string &str) {
 }
 
 bool is_Function_Call(const std::string &str, int spaces_At_The_Beggining) {
-  std::string copia = str;
-  int position = copia.find('(');
   std::regex regex_Impresion("(\\s){" +
                              std::to_string(spaces_At_The_Beggining) +
-                             "}(" + copia.substr(0, position) + ")(\\s*)(\\()(\\s*)(\")(.*)(\")(\\s*)("
+                             "}(impresion)(\\s*)(\\()(\\s*)(\")(.*)(\")(\\s*)("
                              "\\,)(\\s*)(\\w+)(\\s*)(\\))");
 
-  if (std::regex_match(str, regex_Impresion)) {
+  if (std::regex_match(str, regex_Impresion))
     return true;
-  }
   return false;
 }
 
@@ -381,13 +378,6 @@ std::string data_Type(const std::string &str) {
     } else if (str[x] == 'i' && str[x + 1] == 'n' && str[x + 2] == 't') {
       return "int";
     } else if (std::isdigit(str[x])) {
-      return "int";
-    } else if (str[x] == '[' && isdigit(str[x + 1]) && str[x + 2] == ']') {
-      std::cout << str[str.size() - 3] << "\n";
-      return "int";
-    } else if (str[str.size() - 3] == '[' && str[str.size() - 1]) {
-      return "int";
-    } else if (str.substr(0, str.find('(')) == "input") {
       return "int";
     }
   }
@@ -575,19 +565,8 @@ void check_Syntax(std::vector<std::string> &str,
           tokens_Return(line, spaces_At_The_Beggining, times);
       type_Function = data_Type_Function(returned_Variable, variables);
     } else {
-      int position = line.find('(');
-      bool found = false;
-      for (auto x : functions_Aux)
-      {
-        if (line.substr(0, position) == x.first) {
-          found = true;
-          break;
-        }
-      }
-      
-      if (!found)
-        message_Error("Sintaxis", line, times);
-    } 
+      message_Error("Sintaxis", line, times);
+    }
 
     if (times == int(str.size()) - 1) {
       if (type_Function.empty()) {
@@ -712,11 +691,11 @@ void read_Functions(std::vector<std::string> &lines, const int start,
       translate_Functions(times, line_By_Line[i], cpp_Code, commas,
                           it_Varabiales);
     }
-    else if (is_Print(line_By_Line[i], 0, commas)) {
+    if (is_Print(line_By_Line[i], 0, commas)) {
       translate_Print(times, line_By_Line[i], copy_Line, cpp_Code, commas,
                       it_Varabiales, spaces_At_The_Beggining);
     }
-    else if (is_Assignment(line_By_Line[i], 0)) {
+    if (is_Assignment(line_By_Line[i], 0)) {
       std::string sub = line_By_Line[i].substr(0, line_By_Line[i].find('='));
       it_Varabiales = status_Variables.find(sub);
       line_By_Line[i].erase(0, line_By_Line[i].find('=') + 1);
@@ -775,7 +754,7 @@ void read_Functions(std::vector<std::string> &lines, const int start,
         }
       }
     }
-    else if (is_For(copy_Line, spaces_At_The_Beggining)) {
+    if (is_For(copy_Line, spaces_At_The_Beggining)) {
       line_By_Line[i].erase(0, 3);
       cpp_Code << std::string(spaces_At_The_Beggining, ' ') << "for(int ";
       std::string variable_For = line_By_Line[i].substr(0, 1);
@@ -794,30 +773,25 @@ void read_Functions(std::vector<std::string> &lines, const int start,
       }
       cpp_Code << variable_For << " ++){\n";
     }
-    else if (is_Method(copy_Line, spaces_At_The_Beggining)) {
+    if (is_Method(copy_Line, spaces_At_The_Beggining)) {
       cpp_Code << std::string(spaces_At_The_Beggining, ' ')
                << line_By_Line[i].substr(0, line_By_Line[i].find('.')) << ".";
 
       line_By_Line[i].erase(0, line_By_Line[i].find('.') + 1 + 6);
       cpp_Code << "push_back" << line_By_Line[i] << ";\n";
     }
-    else if (is_Return(copy_Line, spaces_At_The_Beggining)) {
+    if (is_Return(copy_Line, spaces_At_The_Beggining)) {
       cpp_Code << copy_Line << ";\n";
     }
-    else if (is_Function_Call(line_By_Line[i], spaces_At_The_Beggining)) {  
-      int position = line_By_Line[i].find('(');
-      std::string name = line_By_Line[i].substr(0, position);
+    if (is_Function_Call(copy_Line, spaces_At_The_Beggining)) {
       line_By_Line[i].erase(0, line_By_Line[i].find('(') + 1);
       copy_Line.erase(0, copy_Line.find('\"') + 1);
       std::string sub = copy_Line;
       copy_Line.erase(0, copy_Line.find('\"') + 2);
 
-      cpp_Code << name << "(\"" << sub.substr(0, sub.find('\"'))
+      cpp_Code << "impresion(\"" << sub.substr(0, sub.find('\"'))
                << "\",std::to_string(";
       cpp_Code << copy_Line.substr(0, copy_Line.find(')')) << "));\n";
-    }
-    else {
-      std::cout << "ERROR";
     }
 
     if (i == int(line_By_Line.size()) - 1) {
