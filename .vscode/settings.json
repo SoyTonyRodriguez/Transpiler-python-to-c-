@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "numbers": "cpp",
-        "string": "cpp",
-        "string_view": "cpp"
-    }
-}
