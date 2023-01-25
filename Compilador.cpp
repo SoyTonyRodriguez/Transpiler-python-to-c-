@@ -413,11 +413,6 @@ tokens_Assignment(const std::string &str, int spaces_At_The_Beggining) {
     status_Variables.insert({aux_Name, condition2});
   }
 
-  /* for (auto x : tokensA) { */
-  /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
-  /* } */
-  /* std::cout << "\n"; */
-
   return variables;
 }
 
@@ -435,12 +430,6 @@ std::string tokens_Return(const std::string &str, int spaces_At_The_Beggining,
   if (condition == "NEW_VARIABLE")
     message_Error("Variable " + str_Copy.substr(0, str_Copy.length()), str,
                   times);
-
-  /* std::cout << str_Copy << "\n\n\n\n"; */
-  /* for (auto x : tokensR) { */
-  /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
-  /* } */
-  /* std::cout << "\n"; */
 
   return str_Copy;
 }
@@ -488,11 +477,6 @@ void tokens_For(const std::string &str, int spaces_At_The_Beggining,
   }
   str_Copy.erase(0, 1);
   str_Copy.erase(0, 1);
-
-  /* for (auto x : tokensF) { */
-  /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
-  /* } */
-  /* std::cout << "\n"; */
 }
 
 void tokens_Method(const std::string &str, int spaces_At_The_Beggining,
@@ -520,11 +504,6 @@ void tokens_Method(const std::string &str, int spaces_At_The_Beggining,
 
   str_Copy.erase(0, position);
   str_Copy.erase(0, 1);
-
-  /* for (auto x : tokensM) { */
-  /*   std::cout << std::string(spaces_At_The_Beggining, ' ') << x << " "; */
-  /* } */
-  /* std::cout << "\n"; */
 }
 
 std::string data_Type_Function(std::string &str,
@@ -540,7 +519,6 @@ std::string data_Type_Function(std::string &str,
     std::cout << "ERROR\n\n";
     exit(-1);
   }
-  /* std::cout << data_Type << "\n\n\n\n"; */
   return data_Type;
 }
 
@@ -600,11 +578,6 @@ void check_Syntax(std::vector<std::string> &str,
     variables.insert(variables_Assignmented.begin(),
                      variables_Assignmented.end());
   }
-
-  /* for (auto x : variables) { */
-  /*   std::cout << x.first << " : " << x.second << "\n"; */
-  /* } */
-  /* std::cout << "\n"; */
 }
 
 void translate_Functions(
